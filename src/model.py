@@ -120,9 +120,37 @@ def test(model, device, test_loader):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
     
+import matplotlib.pyplot as plt
+
+# Lists to store epoch-wise accuracy
+epoch_accuracies = []
+
 model = Net().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
+# Modified train and test loops to store accuracy
 for epoch in range(1, 20):
+    print(f"Epoch {epoch}:")
     train(model, device, train_loader, optimizer, epoch)
-    test(model, device, test_loader)
+    test_loss = 0
+    correct = 0
+    model.eval()
+    with torch.no_grad():
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+            output = model(data)
+            test_loss += F.nll_loss(output, target, reduction='sum').item()
+            pred = output.argmax(dim=1, keepdim=True)
+            correct += pred.eq(target.view_as(pred)).sum().item()
+    accuracy = 100. * correct / len(test_loader.dataset)
+    epoch_accuracies.append(accuracy)
+    print(f"Test set accuracy: {accuracy:.2f}%")
+
+# Plot the accuracy
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, 20), epoch_accuracies, marker='o', linestyle='-', color='b')
+plt.title("Model Accuracy Over Epochs")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy (%)")
+plt.grid(True)
+plt.show()
